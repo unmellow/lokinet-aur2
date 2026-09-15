@@ -1,38 +1,9 @@
 post_install() {
-  systemd-sysusers lokinet.conf >/dev/null 2>&1 || systemd-sysusers
-  systemd-tmpfiles --create lokinet.conf >/dev/null 2>&1 || systemd-tmpfiles --create
-
+  # Previous AUR layouts used a symlink /etc/loki/lokinet.ini -> /var/lib.
+  # Pacman sysusers/tmpfiles hooks own user and directory creation.
   if [[ -L /etc/loki/lokinet.ini ]]; then
     rm -f /etc/loki/lokinet.ini
   fi
-  if [[ ! -f /etc/loki/lokinet.ini ]]; then
-    cat > /etc/loki/lokinet.ini << 'EOF'
-[router]
-data-dir=/var/lib/lokinet
-netid=lokinet
-worker-threads=0
-
-[dns]
-upstream=1.1.1.1
-upstream=9.9.9.9
-bind=127.3.2.1:53
-
-[bootstrap]
-add-node=/var/lib/lokinet/bootstrap.signed
-
-[api]
-enabled=false
-
-[logging]
-type=syslog
-level=info
-
-[network]
-EOF
-  fi
-  chown root:lokinet /etc/loki/lokinet.ini 2>/dev/null || true
-  chmod 640 /etc/loki/lokinet.ini 2>/dev/null || true
-  chown -R lokinet:lokinet /var/lib/lokinet 2>/dev/null || true
 }
 
 post_upgrade() { post_install; }

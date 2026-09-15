@@ -1,19 +1,22 @@
-# Maintainer: xiota
-# Contributor: nekgem2 <nekgem2@firemail.cc>
-# Local rebuild for GCC 16 / CMake 4.4
+# Maintainer: Unmellow <amazingminecrafter2015 at gmail dot com>
+# Contributor: xiota
+# Contributor: nekgem2 <nekgem2 at firemail dot cc>
 #
-# Sidecar files that MUST replace the AUR copies (same names):
+# Local overlay of AUR/lokinet. Do NOT push this pkgbase to aur.archlinux.org:
+# lokinet 0.9.14 is already maintained by xiota. Send GCC 16 / CMake 4.4
+# fixes as comments on https://aur.archlinux.org/packages/lokinet
+#
+# Differences from AUR/lokinet:
 #   lokinet.service   — CAP_NET_ADMIN + ExecStart=/etc/loki/lokinet.ini
-#   lokinet.tmpfiles  — ONE-WAY link /var/lib/lokinet/lokinet.ini -> /etc/loki/lokinet.ini
+#   lokinet.tmpfiles  — one-way link /var/lib/lokinet/lokinet.ini -> /etc/loki/lokinet.ini
 #   lokinet.install   — never reverse-link /etc -> /var/lib
-#
-# Keep AUR: lokinet.conf (unused), lokinet-vpn@.service, lokinet-resume.service,
-#           lokinet.sysusers, lokinet.rules
+#   CMAKE_POLICY_VERSION_MINIMUM=3.5 for CMake 4
+#   cpr-cstdint.patch for GCC 16
 
 _pkgname=lokinet
 pkgname=$_pkgname
 pkgver=0.9.14
-pkgrel=4
+pkgrel=5
 pkgdesc="Anonymous, decentralized and IP based overlay network for the internet"
 url="https://github.com/oxen-io/lokinet"
 license=('GPL-3.0-or-later')
@@ -34,32 +37,34 @@ makedepends=(
   'git'
   'ninja'
   'nlohmann-json'
-  'pkgconf'
   'python'
 )
 conflicts=('lokinet-bin')
-provides=('lokinet')
 install='lokinet.install'
 backup=('etc/loki/lokinet.ini')
+_commit='90f2fde60009691cfe58eb5b8d90fc4a71c18347'
 _pkgsrc="$_pkgname"
 source=(
-  "$_pkgsrc"::"git+$url.git#tag=v$pkgver"
-  'lokinet.conf'
+  "$_pkgsrc"::"git+$url.git#commit=$_commit"
+  'lokinet.ini'
   'lokinet.service'
   'lokinet-vpn@.service'
   'lokinet-resume.service'
   'lokinet.sysusers'
   'lokinet.tmpfiles'
   'lokinet.rules'
+  'cpr-cstdint.patch'
 )
 sha256sums=('SKIP'
-            'ff5e7db4e65463e50978da0185487bd4a7f213f04bdb6256e221089f833c6ab6'
+            '5a64bccc13152cb78b4243f6a98ddf3437c881e2875f35353dba6ef8e93611cd'
             'cb594dfac267d0759a34a91e74f6d7e2e85232b0e17ef5eb7760b33295f786f0'
             '1c90e7e362bf33d824af70fcf7da509dcc166f9d1f9c90111d25c28905b81857'
             'bcf4bd7b38d2f054e25cc243353d3c9a56d1948b42ad07ee5c0260de06e8dd6c'
             '137cf7eeebc8737d62f3ccfad2398fb1c442a91cb9db7d650429b218dd949a00'
-            '627518e45abbb98a1758de57853a5930e97ea2d06d65eac4c5c08e26b239dfe5'
-            '6ea4d917ce2e46b2c31af31b8c8c28054c5f977bab5b050c44e2029ab3248713')
+            '8026813dc5d420a2d9320b23d7afc46daebde1f728c17d4b5a9c087c6e850838'
+            '6ea4d917ce2e46b2c31af31b8c8c28054c5f977bab5b050c44e2029ab3248713'
+            '6e14400832f2691a37e56cbd045bf5e98adb4f6d5c96dff782847479c8b795e8')
+
 prepare() {
   cd "$_pkgsrc"
 
@@ -74,10 +79,9 @@ prepare() {
     git -C external/oxen-logging submodule update --init --depth=1
   fi
 
-  if [[ -f external/cpr/include/cpr/callback.h ]]; then
-    if ! grep -q '#include <cstdint>' external/cpr/include/cpr/callback.h; then
-      sed -i '1s/^/#include <cstdint>\n/' external/cpr/include/cpr/callback.h
-    fi
+  local _cpr_cb=external/cpr/include/cpr/callback.h
+  if [[ -f $_cpr_cb ]] && ! grep -q '#include <cstdint>' "$_cpr_cb"; then
+    patch -Np1 -i "$srcdir/cpr-cstdint.patch"
   fi
 }
 
@@ -88,14 +92,13 @@ build() {
     -B build
     -S "$_pkgsrc"
     -G Ninja
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=None
     -DCMAKE_INSTALL_PREFIX=/usr
     -DCMAKE_C_FLAGS="$CFLAGS"
     -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     -DCMAKE_WARN_DEPRECATED=OFF
-    -Wno-author
-    -Wno-deprecated
+    -Wno-dev
     -DBUILD_LIBLOKINET=OFF
     -DDOWNLOAD_SODIUM=OFF
     -DFORCE_OXENC_SUBMODULE=ON
@@ -135,34 +138,9 @@ package() {
   install -dm750 "$pkgdir/usr/share/polkit-1/rules.d"
   install -Dm644 lokinet.rules "$pkgdir/usr/share/polkit-1/rules.d/lokinet.rules"
 
-  # REAL config. AUR lokinet.conf is not an INI — never install it here.
-  # tmpfiles creates the one-way /var/lib/lokinet/lokinet.ini -> this file.
   install -dm750 "$pkgdir/etc/loki"
   install -dm750 "$pkgdir/var/lib/lokinet"
-  cat > "$pkgdir/etc/loki/lokinet.ini" << 'EOF'
-[router]
-data-dir=/var/lib/lokinet
-netid=lokinet
-worker-threads=0
-
-[dns]
-upstream=1.1.1.1
-upstream=9.9.9.9
-bind=127.3.2.1:53
-
-[bootstrap]
-add-node=/var/lib/lokinet/bootstrap.signed
-
-[api]
-enabled=false
-
-[logging]
-type=syslog
-level=info
-
-[network]
-EOF
-  chmod 640 "$pkgdir/etc/loki/lokinet.ini"
+  install -Dm640 lokinet.ini "$pkgdir/etc/loki/lokinet.ini"
 
   if [[ -f "$_pkgsrc/contrib/bootstrap/mainnet.signed" ]]; then
     install -Dm644 "$_pkgsrc/contrib/bootstrap/mainnet.signed" \
