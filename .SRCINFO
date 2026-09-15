@@ -1,7 +1,7 @@
 pkgbase = lokinet
 	pkgdesc = Anonymous, decentralized and IP based overlay network for the internet
 	pkgver = 0.9.14
-	pkgrel = 2
+	pkgrel = 4
 	url = https://github.com/oxen-io/lokinet
 	install = lokinet.install
 	arch = x86_64
@@ -18,11 +18,13 @@ pkgbase = lokinet
 	depends = jemalloc
 	depends = libsodium
 	depends = libuv
+	depends = oxen-mq
 	depends = systemd-libs
 	depends = unbound
 	depends = zeromq
 	provides = lokinet
 	conflicts = lokinet-bin
+	backup = etc/loki/lokinet.ini
 	source = lokinet::git+https://github.com/oxen-io/lokinet.git#tag=v0.9.14
 	source = lokinet.conf
 	source = lokinet.service
@@ -33,11 +35,11 @@ pkgbase = lokinet
 	source = lokinet.rules
 	sha256sums = SKIP
 	sha256sums = ff5e7db4e65463e50978da0185487bd4a7f213f04bdb6256e221089f833c6ab6
-	sha256sums = ffd87df5d7a6d8b7416577a87e89f79c54930e0f14824c9831ad16f0ecfb6f42
+	sha256sums = cb594dfac267d0759a34a91e74f6d7e2e85232b0e17ef5eb7760b33295f786f0
 	sha256sums = 1c90e7e362bf33d824af70fcf7da509dcc166f9d1f9c90111d25c28905b81857
 	sha256sums = bcf4bd7b38d2f054e25cc243353d3c9a56d1948b42ad07ee5c0260de06e8dd6c
 	sha256sums = 137cf7eeebc8737d62f3ccfad2398fb1c442a91cb9db7d650429b218dd949a00
-	sha256sums = b0d87fd610bbc7ef56148590dbc6ed6a68f36ec88db783f408a66c815705fd75
+	sha256sums = 627518e45abbb98a1758de57853a5930e97ea2d06d65eac4c5c08e26b239dfe5
 	sha256sums = 6ea4d917ce2e46b2c31af31b8c8c28054c5f977bab5b050c44e2029ab3248713
 
 pkgname = lokinet

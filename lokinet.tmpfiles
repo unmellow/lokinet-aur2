@@ -1,2 +1,3 @@
-d /var/lib/lokinet 0700 lokinet lokinet - -
-z /etc/loki        0750 root    lokinet - -
+d /etc/loki 0750 root lokinet -
+d /var/lib/lokinet 0750 lokinet lokinet -
+L /var/lib/lokinet/lokinet.ini - - - - /etc/loki/lokinet.ini
